@@ -60,6 +60,12 @@ RESOURCE_METHODS = ['GET', 'POST', 'DELETE']
 # individual items  (defaults to read-only item access).
 ITEM_METHODS = ['GET', 'PATCH', 'PUT', 'DELETE']
 
+# Maximum value allowed for QUERY_MAX_RESULTS query parameter.
+PAGINATION_LIMIT = 10000
+
+# Default value for QUERY_MAX_RESULTS.
+PAGINATION_DEFAULT = 10000
+
 annotation_schema = {
     # Schema definition, based on Cerberus grammar. Check the Cerberus project
     # (https://github.com/nicolaiarocci/cerberus) for details.
