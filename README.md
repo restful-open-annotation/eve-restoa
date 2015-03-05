@@ -14,3 +14,16 @@ For more information, see
 * http://en.wikipedia.org/wiki/REST
 * http://python-eve.org/
 * http://www.mongodb.org/
+
+## Installation
+
+### MongoDB
+
+After initial installation, you can set up the user for the server as
+follows:
+
+    $ mongo <DBNAME>
+    db.addUser({user: "<NAME>", pwd: "<PASSWORD>", roles: ["readWrite"]})
+
+where `<DBNAME>`, `<NAME>` and `<PASSWORD>` are set up to match your
+settings.
