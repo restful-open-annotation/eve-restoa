@@ -28,7 +28,9 @@ app.on_post_GET += post_GET_callback
 app.on_pre_POST += pre_POST_callback
 
 def main(argv):
-    app.run(debug=DEBUG)
+    # TODO: don't serve directly
+    app.run(host='0.0.0.0', port=5000, debug=False)
+    #app.run(debug=DEBUG)
     return 1
 
 if __name__ == '__main__':
