@@ -8,6 +8,7 @@ __license__ = 'MIT'
 # code execution.
 DEBUG = True
 
+# TODO: the LD_ settings really belong in oajson.py
 # Default JSON-LD @context.
 LD_CONTEXT = 'http://www.w3.org/ns/oa.jsonld'
 
@@ -22,9 +23,11 @@ LD_COLLTYPE = 'http://www.w3.org/ns/hydra/core#Collection'
 # "1997-07-16T19:20:30.45+01:00". TODO: time zone
 DATE_FORMAT = '%Y-%m-%dT%H:%M:%S'
 
-# Eve HATEOAS controls are not part of JSON-LD, and largely rendudant
-# with general use of link relations and URIs inherent in JSON-LD.
-HATEOAS = False
+# Eve HATEOAS controls are not part of JSON-LD, and partially
+# rendudant with general use of link relations and URIs inherent in
+# JSON-LD. However, they can be used to generate links for traversing
+# paginated collections.
+HATEOAS = True
 
 # Return entire document on PUT, POST and PATCH.
 #BANDWIDTH_SAVER = False

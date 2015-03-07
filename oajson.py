@@ -10,6 +10,11 @@ from settings import LD_CONTEXT, LD_ITEMTYPE, LD_COLLTYPE, ITEMS
 CONTEXT_KEY = '@context'
 TYPE_KEY = '@type'
 
+# RFC 6573 link relations. Must be defined in @context to expand to
+# "http://www.iana.org/assignments/link-relations/#<RELATION>".
+ITEM_KEY = 'item'
+COLLECTION_KEY = 'collection'
+
 # backward compatibility (Open Annotation -> Web Annotation @context)
 # and variant forms
 compatibility_rewrites = [
@@ -42,14 +47,14 @@ def remove_context(document, context=LD_CONTEXT):
     if CONTEXT_KEY in document and document[CONTEXT_KEY] == context:
         del document[CONTEXT_KEY]
 
-def _is_collection(document):
+def is_collection(document):
     # TODO: more reliable definition of what is a collection
     return isinstance(document, dict) and isinstance(document.get(ITEMS), list)
 
 def add_types(document, itemtype=LD_ITEMTYPE, colltype=LD_COLLTYPE):
     """Add JSON-LD @types to given document."""
     # TODO: recurse
-    if _is_collection(document):
+    if is_collection(document):
         type_ = colltype
     else:
         type_ = itemtype
@@ -59,7 +64,7 @@ def add_types(document, itemtype=LD_ITEMTYPE, colltype=LD_COLLTYPE):
 def remove_types(document, itemtype=LD_ITEMTYPE, colltype=LD_COLLTYPE):
     """Remove given JSON-LD @types from given document."""
     # TODO: recurse
-    if _is_collection(document):
+    if is_collection(document):
         type_ = colltype
     else:
         type_ = itemtype

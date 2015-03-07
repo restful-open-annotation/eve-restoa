@@ -21,6 +21,8 @@ def eve_to_jsonld(document):
     document = oajson.remap_keys(document, eve_to_jsonld_key_map)
     oajson.add_context(document)
     oajson.add_types(document)
+    remove_meta(document)
+    rewrite_links(document)
     return document
 
 def eve_from_jsonld(document):
@@ -37,12 +39,92 @@ def is_jsonld_response(response):
     return response.mimetype in ['application/json', 'application/ld+json']
 
 def post_GET_callback(resource, request, payload):
+    """Event hook to run after executing a GET method.
+
+    Converts Eve payloads that should be interpreted as JSON-LD into
+    the Open Annotation JSON-LD representation.
+    """
     if not is_jsonld_response(payload):
         return
-    # rewrite Eve keys as JSON-LD ones
     doc = json.loads(payload.get_data())
     jsonld_doc = eve_to_jsonld(doc)
     payload.set_data(json.dumps(jsonld_doc))
+
+def remove_meta(document):
+    """Remove Eve pagination meta-information ("_meta") from request
+    if present."""
+    try:
+        del document['_meta']
+    except KeyError:
+        pass
+
+def _rewrite_collection_links(document):
+    """Rewrite Eve HATEOAS-style "_links" to JSON-LD for a collection.
+
+    Also rewrites links for items in the collection."""
+    links = document.get('_links')
+    assert links is not None, 'internal error'
+
+    # Eve generates RFC 5988 link relations ("next", "prev", etc.)
+    # for collections when appropriate. Move these to the collection
+    # level.
+    for key in ['start', 'last', 'next', 'prev', 'previous']:
+        if key not in links:
+            pass
+        elif 'href' not in links[key]:
+            print 'Warning: no href in Eve _links[%s]' % key
+        else:
+            assert key not in document, \
+                'Error: redundant %s links: %s' % (key, str(document))
+            # TODO: don't assume the RESTful OA keys match Eve ones. In
+            # particular, consider normalizing 'prev' vs. 'previous'.
+            document[key] = links[key]['href']
+
+    # Others assumed to be redundant with JSON-LD information and safe
+    # to delete.
+    del document['_links']
+
+    # Process _links in collection items. (At the moment, just
+    # delete them.)
+    for item in document.get(oajson.ITEMS, []):
+        try:
+            del item['_links']
+        except KeyError:
+            pass
+
+    return document
+
+def _rewrite_item_links(document):
+    """Rewrite Eve HATEOAS-style "_links" to JSON-LD for non-collection."""
+    links = document.get('_links')
+    assert links is not None, 'internal error'
+
+    # Eve is expected to provide "collection" as a refererence back to
+    # the collection of which the item is a member. We'll move this to
+    # the item level with the collection link relation (RFC 6573)
+    if 'collection' not in links or 'href' not in links['collection']:
+        print 'Warning: no collection in Eve _links.' # TODO use logging
+    else:
+        assert oajson.COLLECTION_KEY not in document, \
+            'Error: redundant collection links: %s' % str(document)
+        document[oajson.COLLECTION_KEY] = links['collection']['href']
+
+    # Eve also generates a "self" links, which is redundant with
+    # JSON-LD "@id", and "parent", which is not defined in the RESTful
+    # OA spec. These can simply be removed.
+    del document['_links']
+    return document
+
+def rewrite_links(document):
+    """Rewrite Eve HATEOAS-style "_links" to JSON-LD."""
+    # HATEOAS is expected but not required, so _links may be absent.
+    if not '_links' in document:
+        print "Warning: no _links in Eve document." # TODO use logging
+        return document
+    if oajson.is_collection(document):
+        return _rewrite_collection_links(document)
+    else:
+        return _rewrite_item_links(document)
 
 def is_jsonld_request(request):
     """Return True if the given Request object should be treated as
