@@ -67,9 +67,12 @@ def _collection_ids_to_absolute_urls(document):
 
 def _item_ids_to_absolute_urls(document):
     """Rewrite @id values from relative to absolute URL form for item."""
-    id_ = document['@id']
-    base = flask.request.base_url
-    document['@id'] = urlparse.urljoin(base, id_)
+    try:
+        id_ = document['@id']
+        base = flask.request.base_url
+        document['@id'] = urlparse.urljoin(base, id_)
+    except KeyError, e:
+        print 'Warning: no @id: %s' % str(document)
 
 def ids_to_absolute_urls(document):
     """Rewrite @id value from relative to absolute URL form."""
