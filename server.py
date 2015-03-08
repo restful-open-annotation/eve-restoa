@@ -34,9 +34,12 @@ from oaeve import convert_incoming_callback, convert_outgoing_callback
 
 # Eve's "settings.py application folder" default fails with wsgi
 app = Eve(settings=os.path.join(appdir, 'settings.py'))
-app.on_post_GET += convert_outgoing_callback
-app.on_post_POST += convert_outgoing_callback
+
 app.on_pre_POST += convert_incoming_callback
+
+app.on_post_GET += convert_outgoing_callback
+app.on_post_PUT += convert_outgoing_callback
+app.on_post_POST += convert_outgoing_callback
 
 def main(argv):
     # TODO: don't serve directly
