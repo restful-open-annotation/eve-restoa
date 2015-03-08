@@ -25,7 +25,11 @@ from eve import Eve
 appdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, os.path.join(appdir))
 
-from settings import DEBUG
+try:
+    from development import DEBUG
+    print >> sys.stderr, '########## Devel, DEBUG %s ##########' % DEBUG
+except ImportError:
+    DEBUG = False
 from oaeve import pre_POST_callback, post_GET_callback
 
 # Eve's "settings.py application folder" default fails with wsgi
@@ -35,8 +39,10 @@ app.on_pre_POST += pre_POST_callback
 
 def main(argv):
     # TODO: don't serve directly
-    app.run(host='0.0.0.0', port=5000, debug=False)
-    #app.run(debug=DEBUG)
+    if not DEBUG:
+        app.run(host='0.0.0.0', port=5000, debug=False)
+    else:
+        app.run(debug=DEBUG, port=5000)
     return 1
 
 if __name__ == '__main__':

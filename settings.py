@@ -3,11 +3,6 @@
 __author__ = 'Sampo Pyysalo'
 __license__ = 'MIT'
 
-# Eve App debug setting. NOTE: this *must* be set to False for any
-# publicly accessible installation, as the debugger allows arbitrary
-# code execution.
-DEBUG = True
-
 # TODO: the LD_ settings really belong in oajson.py
 # Default JSON-LD @context.
 LD_CONTEXT = 'http://www.w3.org/ns/oa.jsonld'
