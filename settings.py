@@ -25,7 +25,7 @@ DATE_FORMAT = '%Y-%m-%dT%H:%M:%S'
 HATEOAS = True
 
 # Return entire document on PUT, POST and PATCH.
-#BANDWIDTH_SAVER = False
+BANDWIDTH_SAVER = False
 
 # Eve ITEMS list largely matches for the "@graph" of JSON-LD named
 # graphs http://www.w3.org/TR/json-ld/#named-graphs
@@ -62,7 +62,7 @@ ITEM_METHODS = ['GET', 'PATCH', 'PUT', 'DELETE']
 PAGINATION_LIMIT = 10000
 
 # Default value for QUERY_MAX_RESULTS.
-PAGINATION_DEFAULT = 10000
+PAGINATION_DEFAULT = 10
 
 annotation_schema = {
     # Schema definition, based on Cerberus grammar. Check the Cerberus project

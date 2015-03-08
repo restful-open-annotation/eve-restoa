@@ -30,6 +30,7 @@ def eve_to_jsonld(document):
     oajson.add_context(document)
     oajson.add_types(document)
     remove_meta(document)
+    remove_status(document)
     rewrite_links(document)
     return document
 
@@ -47,7 +48,7 @@ def is_jsonld_response(response):
     # TODO: reconsider "application/json" here
     return response.mimetype in ['application/json', 'application/ld+json']
 
-def post_GET_callback(resource, request, payload):
+def convert_outgoing_callback(resource, request, payload):
     """Event hook to run after executing a GET method.
 
     Converts Eve payloads that should be interpreted as JSON-LD into
@@ -78,10 +79,16 @@ def ids_to_absolute_urls(document):
         return _item_ids_to_absolute_urls(document)
 
 def remove_meta(document):
-    """Remove Eve pagination meta-information ("_meta") from request
-    if present."""
+    """Remove Eve pagination meta-information ("_meta") if present."""
     try:
         del document['_meta']
+    except KeyError:
+        pass
+
+def remove_status(document):
+    """Remove Eve status information ("_status") if present."""
+    try:
+        del document['_status']
     except KeyError:
         pass
 
@@ -175,7 +182,7 @@ def rewrite_content_type(request):
     headers['Content-Type'] = ';'.join(parts)
     request.headers = headers
 
-def pre_POST_callback(resource, request):
+def convert_incoming_callback(resource, request):
     # force=True because older versions of flask don't recognize the
     # content type application/ld+json as JSON.
     doc = request.get_json(force=True)

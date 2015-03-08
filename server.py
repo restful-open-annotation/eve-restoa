@@ -30,12 +30,13 @@ try:
     print >> sys.stderr, '########## Devel, DEBUG %s ##########' % DEBUG
 except ImportError:
     DEBUG = False
-from oaeve import pre_POST_callback, post_GET_callback
+from oaeve import convert_incoming_callback, convert_outgoing_callback
 
 # Eve's "settings.py application folder" default fails with wsgi
 app = Eve(settings=os.path.join(appdir, 'settings.py'))
-app.on_post_GET += post_GET_callback
-app.on_pre_POST += pre_POST_callback
+app.on_post_GET += convert_outgoing_callback
+app.on_post_POST += convert_outgoing_callback
+app.on_pre_POST += convert_incoming_callback
 
 def main(argv):
     # TODO: don't serve directly
