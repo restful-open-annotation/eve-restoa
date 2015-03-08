@@ -6,8 +6,14 @@ __author__ = 'Sampo Pyysalo'
 __license__ = 'MIT'
 
 import json
+import urlparse
+
+import flask
 
 import oajson
+
+# whether to expand @id values to absolute URLs
+ABSOLUTE_ID_URLS = True
 
 # mapping from Eve JSON keys to JSON-LD ones
 jsonld_key_rewrites = [
@@ -19,6 +25,8 @@ jsonld_to_eve_key_map = dict([(b,a) for a,b in jsonld_key_rewrites])
 
 def eve_to_jsonld(document):
     document = oajson.remap_keys(document, eve_to_jsonld_key_map)
+    if ABSOLUTE_ID_URLS:
+        ids_to_absolute_urls(document)
     oajson.add_context(document)
     oajson.add_types(document)
     remove_meta(document)
@@ -27,6 +35,7 @@ def eve_to_jsonld(document):
 
 def eve_from_jsonld(document):
     document = oajson.remap_keys(document, jsonld_to_eve_key_map)
+    # TODO: invert ids_to_absolute_urls() here
     oajson.normalize(document)
     oajson.remove_context(document)
     oajson.remove_types(document)
@@ -49,6 +58,24 @@ def post_GET_callback(resource, request, payload):
     doc = json.loads(payload.get_data())
     jsonld_doc = eve_to_jsonld(doc)
     payload.set_data(json.dumps(jsonld_doc))
+
+def _collection_ids_to_absolute_urls(document):
+    """Rewrite @id values from relative to absolute URL form for collection."""
+    for item in document.get(oajson.ITEMS, []):
+        _item_ids_to_absolute_urls(item)
+
+def _item_ids_to_absolute_urls(document):
+    """Rewrite @id values from relative to absolute URL form for item."""
+    id_ = document['@id']
+    base = flask.request.base_url
+    document['@id'] = urlparse.urljoin(base, id_)
+
+def ids_to_absolute_urls(document):
+    """Rewrite @id value from relative to absolute URL form."""
+    if oajson.is_collection(document):
+        return _collection_ids_to_absolute_urls(document)
+    else:
+        return _item_ids_to_absolute_urls(document)
 
 def remove_meta(document):
     """Remove Eve pagination meta-information ("_meta") from request
