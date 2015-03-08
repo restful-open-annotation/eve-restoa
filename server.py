@@ -17,13 +17,19 @@ __author__ = 'Sampo Pyysalo'
 __license__ = 'MIT'
 
 import sys
+import os
 
 from eve import Eve
+
+# TODO: I think we need this for mod_wsgi, but make sure.
+appdir = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(0, os.path.join(appdir))
 
 from settings import DEBUG
 from oaeve import pre_POST_callback, post_GET_callback
 
-app = Eve()
+# Eve's "settings.py application folder" default fails with wsgi
+app = Eve(settings=os.path.join(appdir, 'settings.py'))
 app.on_post_GET += post_GET_callback
 app.on_pre_POST += pre_POST_callback
 
