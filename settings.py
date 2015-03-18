@@ -3,6 +3,9 @@
 __author__ = 'Sampo Pyysalo'
 __license__ = 'MIT'
 
+# The port on the server to listen to
+PORT = 5001
+
 # TODO: the LD_ settings really belong in oajson.py
 # Default JSON-LD @context.
 LD_CONTEXT = 'http://www.w3.org/ns/oa.jsonld'

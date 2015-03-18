@@ -21,6 +21,8 @@ import os
 
 from eve import Eve
 
+from settings import PORT
+
 # TODO: I think we need this for mod_wsgi, but make sure.
 appdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, os.path.join(appdir))
@@ -44,9 +46,9 @@ app.on_post_POST += convert_outgoing_callback
 def main(argv):
     # TODO: don't serve directly
     if not DEBUG:
-        app.run(host='0.0.0.0', port=5000, debug=False)
+        app.run(host='0.0.0.0', port=PORT, debug=False)
     else:
-        app.run(debug=DEBUG, port=5000)
+        app.run(debug=DEBUG, port=PORT)
     return 1
 
 if __name__ == '__main__':
