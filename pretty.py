@@ -12,9 +12,9 @@ for l in sys.stdin:
 else:
     l = ''
 
-rest = l + sys.stdin.read()
+rest = l + ''.join(i for i in sys.stdin)
 if not rest.strip():
     sys.stdout.write(rest)
 else:
-    doc = json.loads(l + sys.stdin.read())
+    doc = json.loads(rest)
     print json.dumps(doc, sort_keys=True, indent=2, separators=(',', ': '))
