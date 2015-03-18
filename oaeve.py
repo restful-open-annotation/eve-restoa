@@ -70,6 +70,11 @@ def _item_ids_to_absolute_urls(document):
     try:
         id_ = document['@id']
         base = flask.request.base_url
+        # Eve responds to both "collection" and "collection/" variants
+        # of the same endpoint, but the join only works for the latter.
+        # We have to make sure the separator is present in the base.
+        if base and base[-1] != '/':
+            base = base + '/'
         document['@id'] = urlparse.urljoin(base, id_)
     except KeyError, e:
         print 'Warning: no @id: %s' % str(document)
@@ -113,9 +118,12 @@ def _rewrite_collection_links(document):
         else:
             assert key not in document, \
                 'Error: redundant %s links: %s' % (key, str(document))
+            # fill in relative links (e.g. "people?page=2")
+            url = links[key]['href']
+            url = urlparse.urljoin(flask.request.url_root, url)
             # TODO: don't assume the RESTful OA keys match Eve ones. In
             # particular, consider normalizing 'prev' vs. 'previous'.
-            document[key] = links[key]['href']
+            document[key] = url
 
     # Others assumed to be redundant with JSON-LD information and safe
     # to delete.
