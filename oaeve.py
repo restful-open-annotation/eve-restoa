@@ -241,5 +241,5 @@ def rewrite_outgoing_document(request, payload):
         doc = json.loads(payload.get_data())
         text = doc['text']
         payload.set_data(text)
-        payload.headers['Content-Type'] = 'text/plain'
+        payload.headers['Content-Type'] = 'text/plain; charset=utf-8'
         payload.headers['ETag'] = text_etag(text)
