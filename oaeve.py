@@ -227,7 +227,7 @@ def document_collection_request(request):
     return parsed.path in ('/documents', '/documents/')
 
 def text_etag(text):
-    return hashlib.sha1(text).hexdigest()
+    return hashlib.sha1(text.encode('utf-8')).hexdigest()
 
 def rewrite_outgoing_document(request, payload):
     if not accepts_mimetype(request, 'text/plain'):
