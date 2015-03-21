@@ -6,6 +6,9 @@ __license__ = 'MIT'
 # The port on the server to listen to
 PORT = 5005
 
+# Never render responses as XML (RDF/XML support TODO)
+XML = False
+
 # Maximum document size in characters. (Note: some PMC docs go over 1M)
 MAX_DOC_SIZE = 100 * 1024
 
