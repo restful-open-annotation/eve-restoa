@@ -213,16 +213,22 @@ def convert_incoming_jsonld(request):
     # Also, we'll need to avoid application/ld+json.
     rewrite_content_type(request)
 
-def accepts(request, mimetype):
+def accepts_mimetype(request, mimetype):
     """Return True if requests accepts mimetype, False otherwise."""
     accepted = request.headers.get('Accept')
     return mimeparse.best_match([mimetype], accepted) == mimetype
 
+def document_collection_request(request):
+    parsed = urlparse.urlparse(request.url)
+    return parsed.path in ('/documents', '/documents/')
+
 def rewrite_outgoing_document(request, payload):
-    if not accepts(request, 'text/plain'):
+    if not accepts_mimetype(request, 'text/plain'):
         pass # Just return whatever is prepared
     elif not 'application/json' in payload.mimetype:
         pass # Can only rewrite JSON
+    elif document_collection_request(request):
+        pass # Can't render a collection as text
     else:
         # Return the text of the document as text/plain
         doc = json.loads(payload.get_data())
