@@ -21,6 +21,8 @@ import os
 
 from eve import Eve
 
+from oaeve import setup_callbacks
+
 from settings import PORT
 
 # TODO: I think we need this for mod_wsgi, but make sure.
@@ -32,19 +34,13 @@ try:
     print >> sys.stderr, '########## Devel, DEBUG %s ##########' % DEBUG
 except ImportError:
     DEBUG = False
-from oaeve import convert_incoming_callback, convert_outgoing_callback
 
 # Eve's "settings.py application folder" default fails with wsgi
 app = Eve(settings=os.path.join(appdir, 'settings.py'))
 
-app.on_pre_POST += convert_incoming_callback
-
-app.on_post_GET += convert_outgoing_callback
-app.on_post_PUT += convert_outgoing_callback
-app.on_post_POST += convert_outgoing_callback
+setup_callbacks(app)
 
 def main(argv):
-    # TODO: don't serve directly
     if not DEBUG:
         app.run(host='0.0.0.0', port=PORT, debug=False)
     else:

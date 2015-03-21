@@ -1,6 +1,8 @@
 #!/bin/bash
 
-ROOT="http://127.0.0.1:5000"
+port=$(egrep '^PORT *=' settings.py | perl -pe 's/^PORT\s*=\s*(\d+).*/$1/')
+
+ROOT="http://127.0.0.1:$port"
 BASE="$ROOT/annotations"
 
 # annotation w/Open Annotation context (e.g. "hasBody" instead of "body")

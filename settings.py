@@ -4,7 +4,10 @@ __author__ = 'Sampo Pyysalo'
 __license__ = 'MIT'
 
 # The port on the server to listen to
-PORT = 5001
+PORT = 5005
+
+# Maximum document size in characters. (Note: some PMC docs go over 1M)
+MAX_DOC_SIZE = 100 * 1024
 
 # TODO: the LD_ settings really belong in oajson.py
 # Default JSON-LD @context.
@@ -67,9 +70,25 @@ PAGINATION_LIMIT = 10000
 # Default value for QUERY_MAX_RESULTS.
 PAGINATION_DEFAULT = 10
 
+# Schemata for validating representations. See Cerberus
+# (https://github.com/nicolaiarocci/cerberus) for syntax and docs.
+document_schema = {
+    'text': {
+        'type': 'string',
+        'minlength': 1,
+        'maxlength': MAX_DOC_SIZE,
+        'required': True,
+    },
+    'name': {
+        'type': 'string',
+        'minlength': 1,
+        'maxlength': 100,
+        'required': True,
+        'unique': True,
+    },
+}
+
 annotation_schema = {
-    # Schema definition, based on Cerberus grammar. Check the Cerberus project
-    # (https://github.com/nicolaiarocci/cerberus) for details.
     'body': {
         'type': 'string',
         'minlength': 1,
@@ -88,12 +107,18 @@ annotation_schema = {
     },
 }
 
-annotations = {
-  'schema': annotation_schema,
-}
-
 DOMAIN = {
-    'annotations': annotations,
+    'documents': {
+        'schema': document_schema,
+        # allow lookup by document name
+        'additional_lookup': {
+            'url': 'regex("[\w]+")',
+            'field': 'name'
+        },
+    },
+    'annotations': {
+        'schema': annotation_schema,
+    },
 }
 
 # Please note that MONGO_HOST and MONGO_PORT could very well be left

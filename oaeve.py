@@ -9,6 +9,7 @@ import json
 import urlparse
 
 import flask
+import mimeparse
 
 import oajson
 
@@ -22,6 +23,13 @@ jsonld_key_rewrites = [
 
 eve_to_jsonld_key_map = dict(jsonld_key_rewrites)
 jsonld_to_eve_key_map = dict([(b,a) for a,b in jsonld_key_rewrites])
+
+def setup_callbacks(app):
+    app.on_pre_POST_annotations += convert_incoming_jsonld
+    app.on_post_GET_annotations += convert_outgoing_jsonld
+    app.on_post_PUT_annotations += convert_outgoing_jsonld
+    app.on_post_POST_annotations += convert_outgoing_jsonld
+    app.on_post_GET_documents += rewrite_outgoing_document
 
 def eve_to_jsonld(document):
     document = oajson.remap_keys(document, eve_to_jsonld_key_map)
@@ -48,7 +56,7 @@ def is_jsonld_response(response):
     # TODO: reconsider "application/json" here
     return response.mimetype in ['application/json', 'application/ld+json']
 
-def convert_outgoing_callback(resource, request, payload):
+def convert_outgoing_jsonld(request, payload):
     """Event hook to run after executing a GET method.
 
     Converts Eve payloads that should be interpreted as JSON-LD into
@@ -193,7 +201,7 @@ def rewrite_content_type(request):
     headers['Content-Type'] = ';'.join(parts)
     request.headers = headers
 
-def convert_incoming_callback(resource, request):
+def convert_incoming_jsonld(request):
     # force=True because older versions of flask don't recognize the
     # content type application/ld+json as JSON.
     doc = request.get_json(force=True)
@@ -204,3 +212,20 @@ def convert_incoming_callback(resource, request):
     doc = eve_from_jsonld(doc)
     # Also, we'll need to avoid application/ld+json.
     rewrite_content_type(request)
+
+def accepts(request, mimetype):
+    """Return True if requests accepts mimetype, False otherwise."""
+    accepted = request.headers.get('Accept')
+    return mimeparse.best_match([mimetype], accepted) == mimetype
+
+def rewrite_outgoing_document(request, payload):
+    if not accepts(request, 'text/plain'):
+        pass # Just return whatever is prepared
+    elif not 'application/json' in payload.mimetype:
+        pass # Can only rewrite JSON
+    else:
+        # Return the text of the document as text/plain
+        doc = json.loads(payload.get_data())
+        text = doc['text']
+        payload.set_data(text)
+        payload.headers['Content-Type'] = 'text/plain'
