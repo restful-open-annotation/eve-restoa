@@ -115,7 +115,7 @@ DOMAIN = {
         'schema': document_schema,
         # allow lookup by document name
         'additional_lookup': {
-            'url': 'regex("[\w]+")',
+            'url': 'regex("[\w.]+")',
             'field': 'name'
         },
     },
