@@ -7,6 +7,7 @@ __license__ = 'MIT'
 
 import json
 import urlparse
+import hashlib
 
 import flask
 import mimeparse
@@ -30,6 +31,9 @@ def setup_callbacks(app):
     app.on_post_PUT_annotations += convert_outgoing_jsonld
     app.on_post_POST_annotations += convert_outgoing_jsonld
     app.on_post_GET_documents += rewrite_outgoing_document
+    # TODO: this doesn't seem to be firing, preventing the use of ETag
+    # in HEAD response to avoid roundtrips.
+    app.on_post_HEAD_documents += rewrite_outgoing_document
 
 def eve_to_jsonld(document):
     document = oajson.remap_keys(document, eve_to_jsonld_key_map)
@@ -222,6 +226,9 @@ def document_collection_request(request):
     parsed = urlparse.urlparse(request.url)
     return parsed.path in ('/documents', '/documents/')
 
+def text_etag(text):
+    return hashlib.sha1(text).hexdigest()
+
 def rewrite_outgoing_document(request, payload):
     if not accepts_mimetype(request, 'text/plain'):
         pass # Just return whatever is prepared
@@ -235,3 +242,4 @@ def rewrite_outgoing_document(request, payload):
         text = doc['text']
         payload.set_data(text)
         payload.headers['Content-Type'] = 'text/plain'
+        payload.headers['ETag'] = text_etag(text)
