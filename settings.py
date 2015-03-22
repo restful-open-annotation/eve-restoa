@@ -6,8 +6,14 @@ __license__ = 'MIT'
 # The port on the server to listen to
 PORT = 5005
 
+# CORS settings
+X_DOMAINS = '*'  # Access-Control-Allow-Origin: * (open to all)
+
 # Never render responses as XML (RDF/XML support TODO)
 XML = False
+
+# Name for target resource field to add for search
+TARGET_RESOURCE = 'target_resource'
 
 # Maximum document size in characters. (Note: some PMC docs go over 1M)
 MAX_DOC_SIZE = 100 * 1024
@@ -71,7 +77,7 @@ ITEM_METHODS = ['GET', 'PATCH', 'PUT', 'DELETE']
 PAGINATION_LIMIT = 10000
 
 # Default value for QUERY_MAX_RESULTS.
-PAGINATION_DEFAULT = 10
+PAGINATION_DEFAULT = 10000
 
 # Schemata for validating representations. See Cerberus
 # (https://github.com/nicolaiarocci/cerberus) for syntax and docs.
@@ -108,6 +114,13 @@ annotation_schema = {
         'minlength': 1,
         'maxlength': 1024,
     },
+    # added to aid in search; target without fragment identifiers (etc.)
+    TARGET_RESOURCE: {
+        'type': 'string',
+        'minlength': 1,
+        'maxlength': 1024,
+        'required': True,
+    },
 }
 
 DOMAIN = {
@@ -115,12 +128,23 @@ DOMAIN = {
         'schema': document_schema,
         # allow lookup by document name
         'additional_lookup': {
-            'url': 'regex("[\w.]+")',
+            # TODO: add schema constraint that "name" must match this
+            'url': 'regex("[\w.-]+")',
             'field': 'name'
         },
     },
     'annotations': {
+        'url': 'annotations',
         'schema': annotation_schema,
+    },
+    'annbydoc': {
+        # http://python-eve.org/features.html#sub-resources
+        'datasource': {
+            'source': 'annotations'
+        },
+        'url': 'documents/<regex(".+"):'+TARGET_RESOURCE+'>/annotations',
+        'schema': annotation_schema,
+        'resource_methods': ['GET'],
     },
 }
 

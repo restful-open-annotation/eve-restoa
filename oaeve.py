@@ -8,11 +8,14 @@ __license__ = 'MIT'
 import json
 import urlparse
 import hashlib
+import re
 
 import flask
 import mimeparse
 
 import oajson
+
+from settings import TARGET_RESOURCE
 
 # whether to expand @id values to absolute URLs
 ABSOLUTE_ID_URLS = True
@@ -26,10 +29,15 @@ eve_to_jsonld_key_map = dict(jsonld_key_rewrites)
 jsonld_to_eve_key_map = dict([(b,a) for a,b in jsonld_key_rewrites])
 
 def setup_callbacks(app):
+    # annotations
     app.on_pre_POST_annotations += convert_incoming_jsonld
     app.on_post_GET_annotations += convert_outgoing_jsonld
     app.on_post_PUT_annotations += convert_outgoing_jsonld
     app.on_post_POST_annotations += convert_outgoing_jsonld
+    # annotations by document (separate Eve endpoint)
+    app.on_post_GET_annbydoc += convert_outgoing_jsonld
+    app.on_post_GET_annbydoc += rewrite_annbydoc_ids
+    # documents
     app.on_post_GET_documents += rewrite_outgoing_document
     # TODO: this doesn't seem to be firing, preventing the use of ETag
     # in HEAD response to avoid roundtrips.
@@ -43,6 +51,7 @@ def eve_to_jsonld(document):
     oajson.add_types(document)
     remove_meta(document)
     remove_status(document)
+    remove_target_resources(document)
     rewrite_links(document)
     return document
 
@@ -52,7 +61,34 @@ def eve_from_jsonld(document):
     oajson.normalize(document)
     oajson.remove_context(document)
     oajson.remove_types(document)
+    add_target_resources(document)
     return document
+
+def add_target_resources(document):
+    """Add fragmentless target URL values to make search easier."""
+    if oajson.is_collection(document):
+        for item in document.get(oajson.ITEMS, []):
+            add_target_resources(item)
+    else:
+        target = document.get('target')
+        if target is None:
+            return
+        assert TARGET_RESOURCE not in document
+        # TODO: support multiple and structured targets
+        if not isinstance(target, basestring):
+            raise NotImplementedError('multiple/structured targets')
+        document[TARGET_RESOURCE] = urlparse.urldefrag(target)[0]
+
+def remove_target_resources(document):
+    """Remove fragmentless target URL values added to make search easier."""
+    if oajson.is_collection(document):
+        for item in document.get(oajson.ITEMS, []):
+            remove_target_resources(item)
+    else:
+        try:
+            del document[TARGET_RESOURCE]
+        except KeyError:
+            pass
 
 def is_jsonld_response(response):
     """Return True if the given Response object should be treated as
@@ -222,24 +258,73 @@ def accepts_mimetype(request, mimetype):
     accepted = request.headers.get('Accept')
     return mimeparse.best_match([mimetype], accepted) == mimetype
 
-def document_collection_request(request):
+def is_document_collection_request(request):
     parsed = urlparse.urlparse(request.url)
     return parsed.path in ('/documents', '/documents/')
 
 def text_etag(text):
     return hashlib.sha1(text.encode('utf-8')).hexdigest()
 
+def rewrite_outgoing_document_collection(request, payload):
+    collection = json.loads(payload.get_data())
+    oajson.add_context(collection)
+    for document in collection.get(oajson.ITEMS, []):
+        # Only include the bare minimum in collection-level requests
+        id_ = document['name']
+        modified = document['serializedAt']
+        document.clear()
+        document['@id'] = id_
+        document['serializedAt'] = modified
+    payload.set_data(json.dumps(collection))
+
 def rewrite_outgoing_document(request, payload):
-    if not accepts_mimetype(request, 'text/plain'):
-        pass # Just return whatever is prepared
-    elif not 'application/json' in payload.mimetype:
+    if not is_jsonld_response(payload):
         pass # Can only rewrite JSON
-    elif document_collection_request(request):
-        pass # Can't render a collection as text
+    elif is_document_collection_request(request):
+        rewrite_outgoing_document_collection(request, payload)
+    elif not accepts_mimetype(request, 'text/plain'):
+        pass # Just return whatever is prepared
     else:
         # Return the text of the document as text/plain
         doc = json.loads(payload.get_data())
-        text = doc['text']
+        try:
+            text = doc['text']
+        except KeyError, e:
+            text = 'Error: failed to load text: %s' % json.dumps(doc, indent=2)
         payload.set_data(text)
         payload.headers['Content-Type'] = 'text/plain; charset=utf-8'
         payload.headers['ETag'] = text_etag(text)
+
+def _rewrite_annbydoc_collection_ids(collection):
+    for item in collection.get(oajson.ITEMS, []):
+        _rewrite_annbydoc_item_id(item)
+
+def _rewrite_annbydoc_item_id(document):
+    id_ = document['@id']
+    parts = urlparse.urlparse(id_)
+    m = re.match(r'^.*(/annotations/[^\/]+)$', parts.path)
+    if not m:
+        # TODO
+        print 'failed to rewrite ann-by-doc id %s' % id_
+        return
+    new_path = m.group(1)
+    rewritten = urlparse.urlunparse((parts.scheme, parts.netloc, new_path,
+                                     parts.params, parts.query, parts.fragment))
+    document['@id'] = rewritten
+
+def rewrite_annbydoc_ids(request, payload):
+    """Event hook to run after GET on annotations-by-document endpoint.
+
+    Removes extra "/documents/.../" from @id values. For example, an
+    @id of "http://ex.org/documents/1.txt/annotations/1" would be
+    rewritten as "http://ex.org/annotations/1".
+    """
+    if not is_jsonld_response(payload):
+        return
+    doc = json.loads(payload.get_data())
+    if oajson.is_collection(doc):
+        _rewrite_annbydoc_collection_ids(doc)
+    else:
+        _rewrite_annbydoc_item_id(doc)
+    payload.set_data(json.dumps(doc))
+
