@@ -267,14 +267,12 @@ def text_etag(text):
 
 def rewrite_outgoing_document_collection(request, payload):
     collection = json.loads(payload.get_data())
-    oajson.add_context(collection)
     for document in collection.get(oajson.ITEMS, []):
         # Only include the bare minimum in collection-level requests
-        id_ = document['name']
-        modified = document['serializedAt']
+        id_, modified = document['name'], document['serializedAt']
         document.clear()
-        document['@id'] = id_
-        document['serializedAt'] = modified
+        document['@id'], document['serializedAt'] = id_, modified
+    collection = eve_to_jsonld(collection)
     payload.set_data(json.dumps(collection))
 
 def rewrite_outgoing_document(request, payload):
