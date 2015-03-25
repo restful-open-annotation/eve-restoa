@@ -29,6 +29,13 @@ jsonld_key_rewrites = [
 eve_to_jsonld_key_map = dict(jsonld_key_rewrites)
 jsonld_to_eve_key_map = dict([(b,a) for a,b in jsonld_key_rewrites])
 
+def dump_json(document, prettyprint=True):
+    if not prettyprint:
+        return json.dumps(document)
+    else:
+        return json.dumps(document, indent=2, sort_keys=True,
+                          separators=(',', ': '))
+
 def setup_callbacks(app):
     # annotations
     app.on_pre_POST_annotations += convert_incoming_jsonld
@@ -107,7 +114,7 @@ def convert_outgoing_jsonld(request, payload):
         return
     doc = json.loads(payload.get_data())
     jsonld_doc = eve_to_jsonld(doc)
-    payload.set_data(json.dumps(jsonld_doc))
+    payload.set_data(dump_json(jsonld_doc))
 
 def _collection_ids_to_absolute_urls(document):
     """Rewrite @id values from relative to absolute URL form for collection."""
@@ -293,7 +300,7 @@ def rewrite_outgoing_document_collection(request, payload):
         document.clear()
         document['@id'], document['serializedAt'] = id_, modified
     collection = eve_to_jsonld(collection)
-    payload.set_data(json.dumps(collection))
+    payload.set_data(dump_json(collection))
 
 def rewrite_outgoing_document(request, payload):
     if not is_jsonld_response(payload):
@@ -308,7 +315,7 @@ def rewrite_outgoing_document(request, payload):
         try:
             text = doc['text']
         except KeyError, e:
-            text = 'Error: failed to load text: %s' % json.dumps(doc, indent=2)
+            text = 'Error: failed to load text: %s' % dump_json(doc)
         payload.set_data(text)
         payload.headers['Content-Type'] = 'text/plain; charset=utf-8'
         payload.headers['ETag'] = text_etag(text)
@@ -344,5 +351,4 @@ def rewrite_annbydoc_ids(request, payload):
         _rewrite_annbydoc_collection_ids(doc)
     else:
         _rewrite_annbydoc_item_id(doc)
-    payload.set_data(json.dumps(doc))
-
+    payload.set_data(dump_json(doc))
