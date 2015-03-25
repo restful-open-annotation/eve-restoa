@@ -101,6 +101,16 @@ annotation_schema = {
     '_id': {
         'type': 'string',
     },
+    '@context': {
+        'type': 'string',
+        'minlength': 1,
+        'maxlength': 1024,
+    },
+    '@type': {
+        'type': 'string',
+        'minlength': 1,
+        'maxlength': 1024,
+    },
     'body': {
         'type': 'string',
         'minlength': 1,
