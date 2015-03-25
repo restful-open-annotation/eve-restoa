@@ -252,7 +252,6 @@ def _is_create_annotation_request(document, request):
 
 def add_new_annotation_id(document, request):
     """Add IDs for annotation documents when necessary."""
-    print 'foo', document, request
     if _is_create_annotation_request(document, request):
         # Creating new annotation; fill ID if one is not provided.
         if '_id' not in document:
