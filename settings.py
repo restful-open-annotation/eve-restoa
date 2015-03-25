@@ -98,6 +98,9 @@ document_schema = {
 }
 
 annotation_schema = {
+    '_id': {
+        'type': 'string',
+    },
     'body': {
         'type': 'string',
         'minlength': 1,
@@ -135,6 +138,7 @@ DOMAIN = {
     },
     'annotations': {
         'url': 'annotations',
+        'item_url': 'regex("[0-9]+")',
         'schema': annotation_schema,
     },
     'annbydoc': {

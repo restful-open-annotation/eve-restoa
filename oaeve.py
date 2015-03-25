@@ -14,6 +14,7 @@ import flask
 import mimeparse
 
 import oajson
+import seqid
 
 from settings import TARGET_RESOURCE
 
@@ -110,19 +111,21 @@ def convert_outgoing_jsonld(request, payload):
 
 def _collection_ids_to_absolute_urls(document):
     """Rewrite @id values from relative to absolute URL form for collection."""
+    base = flask.request.base_url
+    # Eve responds to both "collection" and "collection/" variants
+    # of the same endpoint, but the join only works for the latter.
+    # We have to make sure the separator is present in the base.
+    if base and base[-1] != '/':
+        base = base + '/'
     for item in document.get(oajson.ITEMS, []):
         _item_ids_to_absolute_urls(item)
 
-def _item_ids_to_absolute_urls(document):
+def _item_ids_to_absolute_urls(document, base=None):
     """Rewrite @id values from relative to absolute URL form for item."""
+    if base is None:
+        base = flask.request.base_url
     try:
         id_ = document['@id']
-        base = flask.request.base_url
-        # Eve responds to both "collection" and "collection/" variants
-        # of the same endpoint, but the join only works for the latter.
-        # We have to make sure the separator is present in the base.
-        if base and base[-1] != '/':
-            base = base + '/'
         document['@id'] = urlparse.urljoin(base, id_)
     except KeyError, e:
         print 'Warning: no @id: %s' % str(document)
@@ -241,6 +244,21 @@ def rewrite_content_type(request):
     headers['Content-Type'] = ';'.join(parts)
     request.headers = headers
 
+def _is_create_annotation_request(document, request):
+    # TODO: better logic for deciding if a document is an annotation.
+    return (request.method == 'POST' and
+            (request.url.endswith('/annotations') or
+             request.url.endswith('/annotations/')))
+
+def add_new_annotation_id(document, request):
+    """Add IDs for annotation documents when necessary."""
+    print 'foo', document, request
+    if _is_create_annotation_request(document, request):
+        # Creating new annotation; fill ID if one is not provided.
+        if '_id' not in document:
+            document['_id'] = str(seqid.next_id())
+    return document
+
 def convert_incoming_jsonld(request):
     # force=True because older versions of flask don't recognize the
     # content type application/ld+json as JSON.
@@ -250,6 +268,8 @@ def convert_incoming_jsonld(request):
     # modifications of the JSON dict, as assigning to request.data
     # doesn't alter the JSON (it's cached) and there is no set_json().
     doc = eve_from_jsonld(doc)
+    # If the request is a post and no ID is provided, make one
+    doc = add_new_annotation_id(doc, request)
     # Also, we'll need to avoid application/ld+json.
     rewrite_content_type(request)
 
