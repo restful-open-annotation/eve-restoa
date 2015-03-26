@@ -39,6 +39,7 @@ def dump_json(document, prettyprint=True):
 def setup_callbacks(app):
     # annotations
     app.on_pre_POST_annotations += convert_incoming_jsonld
+    app.on_pre_PUT_annotations += convert_incoming_jsonld
     app.on_post_GET_annotations += convert_outgoing_jsonld
     app.on_post_PUT_annotations += convert_outgoing_jsonld
     app.on_post_POST_annotations += convert_outgoing_jsonld
@@ -265,7 +266,7 @@ def add_new_annotation_id(document, request):
             document['_id'] = str(seqid.next_id())
     return document
 
-def convert_incoming_jsonld(request):
+def convert_incoming_jsonld(request, lookup=None):
     # force=True because older versions of flask don't recognize the
     # content type application/ld+json as JSON.
     doc = request.get_json(force=True)
