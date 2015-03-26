@@ -34,7 +34,7 @@ def dump_json(document, prettyprint=True):
         return json.dumps(document)
     else:
         return json.dumps(document, indent=2, sort_keys=True,
-                          separators=(',', ': '))
+                          separators=(',', ': '))+'\n'
 
 def setup_callbacks(app):
     # annotations
